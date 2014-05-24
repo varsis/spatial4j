@@ -27,7 +27,7 @@ import static com.spatial4j.core.shape.SpatialRelation.*;
  * INERNAL: A buffered line of infinite length.
  * Public for test access.
  */
-public class InfBufLine {
+public class RayLine {
 
   //TODO consider removing support for vertical line -- let caller
   // do something else.  BufferedLine could have a factory method
@@ -43,7 +43,7 @@ public class InfBufLine {
 
   private final double distDenomInv;//cached: 1 / Math.sqrt(slope * slope + 1)
 
-  InfBufLine(double slope, Point point, double buf) {
+  RayLine(double slope, Point point, double buf) {
     assert !Double.isNaN(slope);
     this.slope = slope;
     if (Double.isInfinite(slope)) {
@@ -56,7 +56,7 @@ public class InfBufLine {
     this.buf = buf;
   }
 
-  SpatialRelation relate(Rectangle r, Point prC, Point scratch) {
+  public SpatialRelation relate(Rectangle r, Point prC, Point scratch) {
     assert r.getCenter().equals(prC);
 
     int cQuad = quadrant(prC);
@@ -80,7 +80,7 @@ public class InfBufLine {
     }
   }
 
-  boolean contains(Point p) {
+  public boolean contains(Point p) {
     return (distanceUnbuffered(p) <= buf);
   }
 
@@ -156,7 +156,7 @@ public class InfBufLine {
 
   @Override
   public String toString() {
-    return "InfBufLine{" +
+    return "RayLine{" +
         "buf=" + buf +
         ", intercept=" + intercept +
         ", slope=" + slope +

@@ -37,17 +37,27 @@ import static com.spatial4j.core.shape.SpatialRelation.WITHIN;
  */
 public class BufferedLine implements Shape {
 
-  private final Point pA, pB;
-  private final double buf;
-  private final Rectangle bbox;
+  protected Point pA, pB;
+  protected double buf;
+  protected Rectangle bbox;
+
+  protected double deltaX;
+  protected double deltaY;
+
+  protected double perpExtent;
+
+  protected double minY, maxY;
+  protected double minX, maxX;
   /**
    * the primary line; passes through pA & pB
    */
-  private final InfBufLine linePrimary;
+  protected RayLine linePrimary;
   /**
    * perpendicular to the primary line, centered between pA & pB
    */
-  private final InfBufLine linePerp;
+  protected RayLine linePerp;
+
+  protected final boolean bufExtend = true;
 
   /**
    * Creates a buffered line from pA to pB. The buffer extends on both sides of
@@ -66,33 +76,55 @@ public class BufferedLine implements Shape {
      * If true, buf should bump-out from the pA & pB, in effect
      *                  extending the line a little.
      */
-    final boolean bufExtend = true;//TODO support false and make this a
+    // included above now
+    //final boolean bufExtend = true;//TODO support false and make this a
     // parameter
 
     this.pA = pA;
     this.pB = pB;
     this.buf = buf;
 
-    double deltaY = pB.getY() - pA.getY();
-    double deltaX = pB.getX() - pA.getX();
+    deltaY = pB.getY() - pA.getY();
+    deltaX = pB.getX() - pA.getX();
 
     PointImpl center = new PointImpl(pA.getX() + deltaX / 2,
         pA.getY() + deltaY / 2, null);
 
-    double perpExtent = bufExtend ? buf : 0;
+    perpExtent = bufExtend ? buf : 0;
 
+    initRays(center, deltaX, deltaY);
+    initMinMax();
+
+
+
+    Rectangle bounds = ctx.getWorldBounds();
+
+    bbox = ctx.makeRectangle(
+            Math.max(bounds.getMinX(), minX),
+            Math.min(bounds.getMaxX(), maxX),
+            Math.max(bounds.getMinY(), minY),
+            Math.min(bounds.getMaxY(), maxY));
+  }
+  /**
+   * Implement in each subclass
+   * Use appropriate rays for implementation
+   * @param center
+   * @param deltaX
+   * @param deltaY
+   */
+  protected void initRays(PointImpl center, double deltaX, double deltaY) {
     if (deltaX == 0 && deltaY == 0) {
-      linePrimary = new InfBufLine(0, center, buf);
-      linePerp = new InfBufLine(Double.POSITIVE_INFINITY, center, buf);
+      this.linePrimary = new RayLine(0, center, buf);
+      linePerp = new RayLine(Double.POSITIVE_INFINITY, center, buf);
     } else {
-      linePrimary = new InfBufLine(deltaY / deltaX, center, buf);
+      linePrimary = new RayLine(deltaY / deltaX, center, buf);
       double length = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-      linePerp = new InfBufLine(-deltaX / deltaY, center,
-          length / 2 + perpExtent);
+      linePerp = new RayLine(-deltaX / deltaY, center,
+              length / 2 + perpExtent);
     }
+  }
 
-    double minY, maxY;
-    double minX, maxX;
+  protected void initMinMax() {
     if (deltaX == 0) { // vertical
       if (pA.getY() <= pB.getY()) {
         minY = pA.getY();
@@ -115,7 +147,7 @@ public class BufferedLine implements Shape {
       //Given a right triangle of A, B, C sides, C (hypotenuse) ==
       // buf, and A + B == the bounding box offset from pA & pB in x & y.
       double bboxBuf = buf * (1 + Math.abs(linePrimary.getSlope()))
-          * linePrimary.getDistDenomInv();
+              * linePrimary.getDistDenomInv();
       assert bboxBuf >= buf && bboxBuf <= buf * 1.5;
 
       if (pA.getX() <= pB.getX()) {
@@ -134,13 +166,6 @@ public class BufferedLine implements Shape {
       }
 
     }
-    Rectangle bounds = ctx.getWorldBounds();
-
-    bbox = ctx.makeRectangle(
-        Math.max(bounds.getMinX(), minX),
-        Math.min(bounds.getMaxX(), maxX),
-        Math.max(bounds.getMinY(), minY),
-        Math.min(bounds.getMaxY(), maxY));
   }
 
   @Override
@@ -236,18 +261,44 @@ public class BufferedLine implements Shape {
     return buf;
   }
 
+  protected Point setA() {
+    return pA;
+  }
+
+  protected Point setB() {
+    return pB;
+  }
+
+  protected double setBuf() {
+    return buf;
+  }
+
   /**
    * INTERNAL
    */
-  public InfBufLine getLinePrimary() {
+  public RayLine getLinePrimary() {
     return linePrimary;
   }
 
   /**
    * INTERNAL
    */
-  public InfBufLine getLinePerp() {
+  public RayLine getLinePerp() {
     return linePerp;
+  }
+
+  /**
+   * INTERNAL
+   */
+  protected void setLinePrimary(RayLine line) {
+    this.linePrimary = line;
+  }
+
+  /**
+   * INTERNAL
+   */
+  protected void setLinePerp(RayLine line) {
+    this.linePerp = line;
   }
 
   @Override
